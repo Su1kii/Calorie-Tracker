@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class TrackingMapper {
 
+    // Tracking entity → response to client
     public TrackingCreateDTO toDTO(Tracking tracking) {
         return TrackingCreateDTO.builder()
                 .calories(tracking.getCalories())
