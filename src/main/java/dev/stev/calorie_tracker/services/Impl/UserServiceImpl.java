@@ -17,13 +17,6 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
 
     @Override
-    public UserResponseDTO registerUser(UserCreateDTO dto) {
-        User user = userMapper.toEntity(dto);
-        User saved =  userRepo.save(user);
-        return userMapper.toDTO(saved);
-    }
-
-    @Override
     public UserResponseDTO getUserById(Integer id) {
         User user = userRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
