@@ -1,4 +1,4 @@
-# FitTrack Pro
+# FitTrack Pro 🥗
 
 **Production-grade fitness and nutrition tracking API built with Java 21 + Spring Boot.**
 
