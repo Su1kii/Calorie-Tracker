@@ -16,8 +16,13 @@
 | Cache hit target | 95%+ |
 
 ## Key decisions
-- [ADR-001: Java + Spring Boot over Node.js](./adr/ADR-001-java-over-nodejs.md)
-- [ADR-002: PostgreSQL over MySQL](./adr/ADR-002-postgresql-over-mysql.md)
+- [ADR-001: Java + Spring Boot over Node.js / Python](./docs/adr/ADR-001-java-over-nodejs.md)
+- [ADR-002: PostgreSQL over MySQL / MongoDB](./docs/adr/ADR-002-postgresql-over-mysql.md)
+- [ADR-003: UUID primary keys over auto-increment INTEGER](./docs/adr/ADR-003-uuid-over-autoincrement.md)
+- [ADR-004: JWT stateless auth over session-based auth](./docs/adr/ADR-004-jwt-stateless-auth.md)
+- [ADR-005: Redis cache-aside over no caching / in-process cache](./docs/adr/ADR-005-redis-cache-aside.md)
+- [ADR-006: Apache Kafka over RabbitMQ / AWS SQS](./docs/adr/ADR-006-kafka-over-rabbitmq.md)
+- [ADR-007: Layered monolith over microservices](./docs/adr/ADR-007-monolith-over-microservices.md)
 
 ## Tech stack
 | Layer | Technology | Why |
