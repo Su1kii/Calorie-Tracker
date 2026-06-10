@@ -19,3 +19,21 @@ the database. App started cleanly on next restart.
 **Lesson:** Spring Boot 4 Flyway autoconfiguration ordering differs from Boot 3.
 When Flyway doesn't appear in startup logs at all, the migration is being skipped
 entirely — not failing. Run manually to seed, then investigate autoconfiguration.
+
+## BUG-002 — Same Flyway ordering issue on V2 migration (Spring Boot 4)
+
+**Date:** 2026-06-10
+**Symptom:** App crashed at startup with `Schema validation: missing table [refresh_tokens]`
+even though V2__create_refresh_tokens_table.sql existed in the correct location.
+**Root cause:** Same Spring Boot 4 initialization ordering issue as BUG-001.
+Hibernate validated before Flyway ran. No Flyway output in logs.
+**Fix:** Ran migration manually via Maven Flyway plugin. Note: backtick line
+continuation is PowerShell syntax only — in bash (WSL) the command must be
+on a single line.
+**Command used:**
+./mvnw flyway:migrate -Dflyway.url=jdbc:postgresql://localhost:5432/fittrack_db -Dflyway.user=fittrack_user -Dflyway.password=fittrack_pass -Dflyway.locations=filesystem:src/main/resources/db/migration
+**Permanent fix attempted:** Added `defer-datasource-initialization: true` under
+`spring.jpa` in `application-local.yml`. Forces Spring to complete Flyway
+migrations before Hibernate validation runs. Pending confirmation on V3.
+**Lesson:** When the same bug appears twice, fix it at the root. Manual seeding
+is a workaround, not a solution. The yml fix should eliminate this permanently.
