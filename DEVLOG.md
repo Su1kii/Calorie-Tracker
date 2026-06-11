@@ -2,6 +2,71 @@
 
 ---
 
+## 2026-06-10 — Phase 1: Steps 8-11 complete
+
+### What I built
+- `RefreshToken.java` entity with `@ManyToOne(FetchType.LAZY)` to `User`,
+  `@Builder.Default` on `isRevoked = false`, `@CreationTimestamp` on `createdAt`.
+- `V2__create_refresh_tokens_table.sql` — FK to users with `ON DELETE CASCADE`,
+  unique index on token, regular index on user_id.
+- `RefreshTokenRepository` — `findByToken(String)` and
+  `findByUserAndIsRevokedFalse(User)`.
+- `SecurityConfig` — three beans: `PasswordEncoder` (BCrypt cost 12),
+  `AuthenticationManager`, `SecurityFilterChain`. Stateless sessions, CSRF
+  disabled, auth + Swagger endpoints permitted, JWT filter registered via
+  `addFilterBefore`.
+- `UserDetailsServiceImpl` — implements Spring Security's `UserDetailsService`,
+  `loadUserByUsername()` delegates to `userRepository.findByEmail()`. User
+  entity implements `UserDetails` so no mapping needed.
+- `JwtAuthenticationFilter` extending `OncePerRequestFilter` — extracts Bearer
+  token from Authorization header, validates via `JwtService`, sets
+  `UsernamePasswordAuthenticationToken` in `SecurityContextHolder`. Guard clause
+  passes unauthenticated requests through silently for public endpoints.
+- `AuthService` interface — `register`, `login`, `refreshToken`, `logout`.
+- `AuthServiceImpl` — full auth flow implementation:
+    - `register()` — duplicate email check, BCrypt hash, save user, issue both
+      tokens, save `RefreshToken` entity, return `AuthResponse`
+    - `login()` — `AuthenticationManager.authenticate()` handles password
+      verification, generate tokens, save refresh token, return `AuthResponse`
+    - `refreshToken()` — validate not revoked and not expired, generate new
+      access token, return same refresh token
+    - `logout()` — find refresh token, set `isRevoked = true`, save
+
+### What I learned
+- `SessionCreationPolicy.STATELESS` — server stores zero session state. Every
+  request is self-contained. Any pod handles any request. Essential for
+  horizontal scaling on Kubernetes — session-based auth breaks when requests
+  hit different pods.
+- `SecurityContextHolder` is thread-local — each request thread has its own
+  isolated authentication context. Your JWT filter must explicitly set it on
+  every request because there's no session to load it from automatically.
+- Why `authenticationManager.authenticate()` in `login()` instead of manual
+  password comparison — it handles the full Spring Security authentication
+  pipeline: load user via `UserDetailsService`, hash the password, compare,
+  check `isEnabled()`. One call replaces 20 lines of manual logic.
+- `BadCredentialsException` → `InvalidCredentialsException` boundary — Spring
+  Security's exception types should never leak into your API response. Map them
+  to your own at the service boundary.
+- Three-argument `UsernamePasswordAuthenticationToken` vs two-argument — three
+  arguments marks the token as authenticated. Two arguments marks it as not yet
+  authenticated. Wrong choice means Spring Security rejects every request.
+- Access token is stateless — generated string, never stored. Fast, no DB
+  lookup on every request. Refresh token is stored — needs to be revocable on
+  logout. That asymmetry is the entire point of the two-token pattern.
+- `org.springframework.transaction.annotation.Transactional` not
+  `jakarta.transaction.Transactional` — Spring's version supports `readOnly`
+  and integrates with Spring's transaction management properly.
+
+### Bugs encountered
+- **BUG-002** — Same Flyway ordering issue on V2 migration. See `docs/BUGS.md`.
+  Permanent fix: `defer-datasource-initialization: true` in `application-local.yml`.
+
+### What's next
+- Step 12: `AuthController` — four endpoints, delegates to `AuthService`
+- Step 13: Smoke test full auth flow via Swagger UI
+- Step 13.5: Unit tests for `AuthServiceImpl` (JUnit 5 + Mockito)
+- Step 14: `FoodItem` entity + migration
+
 ## 2026-06-05 — Phase 1: Steps 1-7 complete
 
 ### What I built
