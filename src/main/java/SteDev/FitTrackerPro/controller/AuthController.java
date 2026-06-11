@@ -6,6 +6,7 @@ import SteDev.FitTrackerPro.domain.dto.response.AuthResponse;
 import SteDev.FitTrackerPro.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,9 +31,9 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh (@RequestHeader("Authorization") String authHeader) {
-        String updatedHeader = authHeader.substring(7);
-        AuthResponse response = authService.refreshToken(updatedHeader);
+    public ResponseEntity<AuthResponse> refresh(@RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.substring(7);
+        AuthResponse response = authService.refreshToken(token);
         return ResponseEntity.ok(response);
     }
 

@@ -102,6 +102,7 @@ public class AuthServiceImpl implements AuthService {
 
     }
 
+    @Transactional
     @Override
     public AuthResponse refreshToken(String token) {
         RefreshToken refreshToken = refreshTokenRepository.findByToken(token)
@@ -118,6 +119,7 @@ public class AuthServiceImpl implements AuthService {
         return new AuthResponse(newAccessToken, token, 900);
     }
 
+    @Transactional
     @Override
     public void logout(String token) {
         RefreshToken refreshToken = refreshTokenRepository.findByToken(token)
