@@ -2,6 +2,76 @@
 
 ---
 
+## 2026-06-11 — Phase 1: Steps 12-13.5 complete
+
+### What I built
+- `AuthController` with four endpoints — `POST /register` (201), `POST /login`
+  (200), `POST /refresh` (200), `POST /logout` (204). Zero business logic —
+  delegates entirely to `AuthService`. `@Valid` on request bodies activates
+  Bean Validation. Bearer token extracted from Authorization header for refresh
+  and logout via `@RequestHeader`.
+- Full auth flow smoke tested end to end via Swagger UI and Postman:
+    - Register → 201 with access + refresh tokens
+    - Login → 200 with tokens
+    - Protected endpoint without token → 401
+    - Protected endpoint with Bearer token → passes through
+    - Refresh → 200 with new access token
+    - Logout → 204 No Content
+    - Refresh after logout → 401 revoked
+- `AuthServiceImplTest` — 8 unit tests with JUnit 5 + Mockito, all passing:
+    - register happy path and duplicate email
+    - login happy path and bad credentials
+    - refreshToken — token not found, revoked, expired, and valid
+    - logout — verifies save called with revoked token
+
+### What I learned
+- `@Valid` on `@RequestBody` is required to activate Bean Validation — without
+  it `@NotBlank` and `@Email` annotations on DTOs do nothing. The annotation
+  is the trigger, not the DTO itself.
+- `204 No Content` is the correct status for operations that succeed but return
+  nothing. `200 OK` implies a body. Logout returns void so 204 is correct.
+- Bearer token convention — `Authorization: Bearer <token>`. The space between
+  `Bearer` and the token is required. `substring(7)` strips the prefix. Your
+  `JwtAuthenticationFilter` checks `startsWith("Bearer ")` — no space means
+  it doesn't recognize it.
+- Postman vs Swagger — Swagger is good for quick exploration but has quirks
+  with custom headers. Postman gives full control over every header and is the
+  production standard for API testing.
+- Unit tests with Mockito — `@Mock` creates a fake dependency, `@InjectMocks`
+  creates the real class with fakes injected, `when().thenReturn()` scripts
+  the fake behavior, `assertThrows()` verifies exceptions, `verify()` confirms
+  side effects happened. No database, no Spring context, runs in milliseconds.
+- The difference between unit and integration tests — unit tests one class in
+  isolation with mocks, integration tests the full stack with real infrastructure.
+- Lambda syntax `() ->` — passes a block of code as an argument. `assertThrows`
+  needs it so it can run the code itself and catch the exception, rather than
+  the exception escaping before `assertThrows` can intercept it.
+- Why `mockUser` is needed even in tests that don't seem to need a User —
+  `userRepository.save()` returns a User in real life. Without telling the mock
+  what to return, it returns null and everything downstream crashes.
+
+### Bugs encountered
+- **BUG-003** — `LazyInitializationException` on `refreshToken()` and `logout()`
+  when accessing `refreshToken.getUser()` outside a Hibernate session. Fixed by
+  adding `@Transactional` to both methods. See `docs/BUGS.md`.
+- Postman sending stale cached token from a previous session — caused repeated
+  401s that looked like a code bug. Always verify the exact token string being
+  sent matches what's in the database when debugging auth issues.
+- Swagger Authorization box requires `Bearer <token>` with a space — `BearerXXX`
+  without the space is not recognized by the filter's `startsWith("Bearer ")`
+  check.
+
+### What's next
+- Step 14: `FoodItem` entity + `V3__create_food_items_table.sql`
+- Step 15: `FoodItemRepository` + DTOs + `FoodItemMapper`
+- Step 16: `FoodItemService` + `FoodItemController`
+- Step 17: `Meal` + `MealEntry` entities + migrations
+- Step 18: `MealRepository` + `MealEntryRepository`
+- Step 19: Meal DTOs + `MealMapper`
+- Step 20: `MealService` + `MealController`
+- Step 21: `UserGoal` entity + migration
+- Step 22: Deploy Phase 1 to Railway — live URL
+
 ## 2026-06-10 — Phase 1: Steps 8-11 complete
 
 ### What I built
