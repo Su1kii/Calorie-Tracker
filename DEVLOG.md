@@ -2,6 +2,72 @@
 
 ---
 
+## 2026-06-12 — Phase 1: Steps 14-16 complete
+
+### What I built
+- `FoodItem.java` entity with `BigDecimal` nutrition fields at
+  `NUMERIC(10, 4)` precision. Explicit `@Column(name = ...)` annotations
+  required because Hibernate converts `caloriesPer100g` to `calories_per100g`
+  but the SQL column was `calories_per_100g` — explicit names resolve the
+  mismatch.
+- `V3__create_food_items_table.sql` — `NUMERIC(10, 4)` for all nutrition
+  columns, GIN trigram index on name for fuzzy search, partial unique index
+  on barcode `WHERE barcode IS NOT NULL`.
+- `FoodItemRequest` record — `@NotNull` on `BigDecimal` fields (not
+  `@NotBlank` which is String-only), optional barcode with no validation.
+- `FoodItemResponse` record — all nutrition fields plus id and timestamps.
+- `FoodItemMapper` via MapStruct — `FoodItem` → `FoodItemResponse`.
+- `FoodItemRepository` — `findByBarcode` derived query + native `ILIKE`
+  trigram search query ordered by `similarity()`.
+- `FoodItemServiceImpl` — `searchByName` wraps raw list in `PageImpl`,
+  `findById` and `findByBarcode` with `ResourceNotFoundException`,
+  `createFoodItem` with `@Transactional`.
+- `FoodItemController` — four endpoints: search, findById, findByBarcode,
+  createFoodItem.
+
+### What I learned
+- `@NotBlank` is for Strings only — checks non-null and non-whitespace.
+  `@NotNull` is for any object type including `BigDecimal`. Using `@NotBlank`
+  on `BigDecimal` compiles but does nothing useful.
+- `ILIKE` vs `LIKE` — `LIKE` is case-sensitive, `ILIKE` is case-insensitive.
+  PostgreSQL-specific. Users search "chicken", "Chicken", "CHICKEN" — all
+  should return the same results. `ILIKE` handles this automatically.
+- `::` method reference syntax — shorthand for a lambda.
+  `foodItemMapper::toFoodItemResponse` is identical to
+  `item -> foodItemMapper.toFoodItemResponse(item)`. Must use the instance
+  (`foodItemMapper`) not the class (`FoodItemMapper`) — non-static methods
+  require an instance to call on.
+- Stream pipeline — `.stream()` converts list to lazy pipeline, `.map()`
+  transforms each element, `.toList()` is the terminal operation that
+  executes everything and collects results.
+- `PageImpl` wraps a raw list into Spring's `Page` type. Three arguments:
+  the data, the `PageRequest` (which page/size), and the total count.
+- Offset calculation for pagination: `page * size`. Page 0 = offset 0,
+  page 1 = offset 20, page 2 = offset 40.
+- Capture `foodItemRepository.save()` return value — it returns the saved
+  entity with generated UUID and timestamps. Ignoring the return value means
+  mapping an entity with null id.
+- Indexing at scale — B-tree for exact/range lookups, GIN trigram for fuzzy
+  text search, partial indexes for nullable unique columns. Without the GIN
+  index, `ILIKE '%chicken%'` on 2M rows is a full table scan.
+- N+1 problem — loading N parents then hitting the DB once per parent for
+  children = N+1 queries. Fix: `JOIN FETCH` loads everything in one query.
+  Critical for Step 18 when building meal queries.
+- Unit tests belong after each vertical slice — DTOs + mapper + repo +
+  service + controller. Never build on top of untested code.
+- Integration tests come after Phase 1 deployment — they test the full
+  HTTP → database flow with a real test database via Testcontainers.
+
+### What's next
+- Monday: `FoodItemServiceImplTest` unit tests
+- Monday: Postman smoke test all four food item endpoints
+- Step 17: `Meal` + `MealEntry` entities + migrations (computed macro pattern)
+- Step 18: `MealRepository` + `MealEntryRepository` with JOIN FETCH
+- Step 19: Meal DTOs + `MealMapper` with BigDecimal macro computation
+- Step 20: `MealService` + `MealController`
+- Step 21: `UserGoal` entity + migration
+- Step 22: Deploy to Railway — live URL
+
 ## 2026-06-11 — Phase 1: Steps 12-13.5 complete
 
 ### What I built
